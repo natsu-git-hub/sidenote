@@ -23,3 +23,22 @@ openBtn.addEventListener('click', async () => {
 window.api.getLibrary().then((result) => {
   renderList(result)
 })
+
+// Handle drag and drop
+document.addEventListener('dragover', (event) => {
+  event.preventDefault()
+})
+
+document.addEventListener('drop', async (event) => {
+  event.preventDefault()
+
+  const files = event.dataTransfer.files
+  const paths = []
+
+  for (const file of files) {
+    paths.push(window.api.getPathForFile(file))
+  }
+
+  const result = await window.api.addFiles(paths)
+  renderList(result)
+})

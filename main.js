@@ -28,6 +28,14 @@ function loadLibrary() {
   }
 }
 
+// Adds new file paths to the library and saves it
+function addFilesToLibrary(filePaths) {
+  const libraryData = loadLibrary()
+  libraryData.push(...filePaths)
+  saveLibrary(libraryData)
+  return libraryData
+}
+
 // Writes the library array to disk as JSON
 function saveLibrary(libraryData) {
   fs.writeFileSync(getLibraryPath(), JSON.stringify(libraryData, null, 2))
@@ -65,16 +73,12 @@ app.whenReady().then(() => {
       properties: ['openFile', 'multiSelections']
     })
     
-    // Load the current library
-    const libraryData = loadLibrary()
-    console.log('Library data:', libraryData)
-    
     // Add the new files to the library
-    libraryData.push(...result.filePaths)
+    const updatedLibrary = addFilesToLibrary(result.filePaths)
     
-    // Save the updated library
-    saveLibrary(libraryData)
-
-    return libraryData
+    return updatedLibrary
   })
+
+  // Adds files to the library (called from renderer)
+  ipcMain.handle('library:addFiles', (event, filePaths) => addFilesToLibrary(filePaths))
 })
