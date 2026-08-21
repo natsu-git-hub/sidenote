@@ -81,4 +81,7 @@ app.whenReady().then(() => {
 
   // Adds files to the library (called from renderer)
   ipcMain.handle('library:addFiles', (event, filePaths) => addFilesToLibrary(filePaths))
+
+  // Read file bytes
+  ipcMain.handle('file:readBytes', (event, filePath) => fs.readFileSync(filePath))
 })

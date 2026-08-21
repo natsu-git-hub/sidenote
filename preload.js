@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('api', {
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
   getLibrary: () => ipcRenderer.invoke('library:get'),
   addFiles: (filePaths) => ipcRenderer.invoke('library:addFiles', filePaths),
-  getPathForFile: (file) => webUtils.getPathForFile(file)
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+  readBytes: (filePath) => ipcRenderer.invoke('file:readBytes', filePath)
 })
