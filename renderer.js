@@ -6,6 +6,7 @@ const fileList = document.getElementById('fileList')
 
 let currentPdf = null
 let currentPageNum = 1
+let currentScale = 1.5
 
 // Rebuilds the <ul> from scratch given a full list of file paths
 function renderList(paths) {
@@ -59,6 +60,7 @@ async function openPdf(filePath) {
   
   currentPdf = pdf
   currentPageNum = 1
+  currentScale = 1.5
 
   // Render the first page
   await renderPage(currentPageNum)
@@ -69,7 +71,7 @@ async function openPdf(filePath) {
 // Render a page
 async function renderPage(pageNum) {
   const page = await currentPdf.getPage(pageNum)
-  const viewport = page.getViewport({ scale: 1.5 })
+  const viewport = page.getViewport({ scale: currentScale })
 
   const canvas = document.getElementById('pdfCanvas')
   canvas.width = viewport.width
@@ -77,6 +79,7 @@ async function renderPage(pageNum) {
   const context = canvas.getContext('2d')
 
   pageNumInput.value = pageNum
+  zoomLevelInput.value = Math.round(currentScale * 100)
 
   await page.render({ canvasContext: context, viewport }).promise
 }
@@ -108,5 +111,41 @@ pageNumInput.addEventListener('change', () => {
   }
   else {
     pageNumInput.value = currentPageNum
+  }
+})
+
+// handle zoom
+const zoomInBtn = document.getElementById('zoomInBtn')
+const zoomOutBtn = document.getElementById('zoomOutBtn')
+const zoomLevelInput = document.getElementById('zoomLevel')
+
+zoomInBtn.addEventListener('click', () => {
+  if (currentScale < 3) {
+    currentScale += 0.1
+  }
+  else{
+    currentScale = 3
+  }
+  renderPage(currentPageNum)
+})
+
+zoomOutBtn.addEventListener('click', () => {
+  if (currentScale > 0.5) {
+    currentScale -= 0.1
+  }
+  else{
+    currentScale = 0.5
+  }
+  renderPage(currentPageNum)
+})
+
+zoomLevelInput.addEventListener('change', () => {
+  const scale = parseInt(zoomLevelInput.value) / 100
+  if (scale >= 0.5 && scale <= 3) {
+    currentScale = scale
+    renderPage(currentPageNum)
+  }
+  else {
+    zoomLevelInput.value = Math.round(currentScale * 100)
   }
 })
