@@ -4,6 +4,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.wo
 const openBtn = document.getElementById('openBtn')
 const fileList = document.getElementById('fileList')
 
+let currentPdf = null
+let currentPageNum = 1
+
 // Rebuilds the <ul> from scratch given a full list of file paths
 function renderList(paths) {
   // clear the file list
@@ -53,7 +56,19 @@ document.addEventListener('drop', async (event) => {
 async function openPdf(filePath) {
   const bytes = await window.api.readBytes(filePath)
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
-  const page = await pdf.getPage(1)
+  
+  currentPdf = pdf
+  currentPageNum = 1
+
+  // Render the first page
+  await renderPage(currentPageNum)
+  
+  return pdf
+}
+
+// Render a page
+async function renderPage(pageNum) {
+  const page = await currentPdf.getPage(pageNum)
   const viewport = page.getViewport({ scale: 1.5 })
 
   const canvas = document.getElementById('pdfCanvas')
@@ -61,5 +76,37 @@ async function openPdf(filePath) {
   canvas.height = viewport.height
   const context = canvas.getContext('2d')
 
+  pageNumInput.value = pageNum
+
   await page.render({ canvasContext: context, viewport }).promise
 }
+
+// Handle page navigation
+const prevBtn = document.getElementById('prevBtn')
+const nextBtn = document.getElementById('nextBtn')
+const pageNumInput = document.getElementById('pageNum')
+
+prevBtn.addEventListener('click', () => {
+  if (currentPageNum > 1) {
+    currentPageNum--
+    renderPage(currentPageNum)
+  }
+})  
+
+nextBtn.addEventListener('click', () => {
+  if (currentPageNum < currentPdf.numPages) {
+    currentPageNum++
+    renderPage(currentPageNum)
+  }
+})
+
+pageNumInput.addEventListener('change', () => {
+  const pageNum = parseInt(pageNumInput.value)
+  if (pageNum > 0 && pageNum <= currentPdf.numPages) {
+    currentPageNum = pageNum
+    renderPage(currentPageNum)
+  }
+  else {
+    pageNumInput.value = currentPageNum
+  }
+})
