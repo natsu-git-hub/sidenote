@@ -3,6 +3,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.wo
 
 const openBtn = document.getElementById('openBtn')
 const fileList = document.getElementById('fileList')
+const thumbnailSidebar = document.getElementById('thumbnailSidebar')
 
 let currentPdf = null
 let currentPageNum = 1
@@ -64,6 +65,9 @@ async function openPdf(filePath) {
 
   // Render the first page
   await renderPage(currentPageNum)
+  
+  // Render thumbnails
+  await renderThumbnails()
   
   return pdf
 }
@@ -149,3 +153,26 @@ zoomLevelInput.addEventListener('change', () => {
     zoomLevelInput.value = Math.round(currentScale * 100)
   }
 })
+
+// Render thumbnails
+async function renderThumbnails() {
+  thumbnailSidebar.innerHTML = ''
+  
+  for (let i = 1; i <= currentPdf.numPages; i++) {
+    const page = await currentPdf.getPage(i)
+    const viewport = page.getViewport({ scale: 0.2 })
+    
+    const canvas = document.createElement('canvas')
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+    const context = canvas.getContext('2d')
+    canvas.addEventListener('click', () => {
+      currentPageNum = i
+      renderPage(currentPageNum)
+    })
+    
+    await page.render({ canvasContext: context, viewport }).promise
+    
+    thumbnailSidebar.appendChild(canvas)
+  }
+}
