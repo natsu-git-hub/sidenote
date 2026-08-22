@@ -150,4 +150,10 @@ app.whenReady().then(() => {
       .run(id, sha256, title, filePath)
     return id
   })
+
+  // Save annotation
+  ipcMain.handle('highlight:create', (event, highlight) => {
+    db.prepare('INSERT INTO highlights (id, document_id, sort_index, quote, prefix, suffix, char_start, char_end, page_index, rects, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(highlight.id, highlight.document_id, highlight.sort_index, highlight.quote, highlight.prefix, highlight.suffix, highlight.char_start, highlight.char_end, highlight.page_index, highlight.rects, highlight.created_at)
+  })
 })

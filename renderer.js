@@ -206,6 +206,7 @@ async function renderThumbnails() {
 const addCommentBtn = document.getElementById('addCommentBtn')
 const pageContainer = document.getElementById('pageContainer')
 const textLayer = document.getElementById('textLayer')
+const highlightsLayer = document.getElementById('highlightLayer')
 let selectedText = ''
 let rectsToSave = []
 
@@ -238,6 +239,26 @@ textLayer.addEventListener('mouseup', () => {
   }
 })
 
+function renderHighlights(rectsToRender) {
+  // TODO: Implement highlight rendering
+  for (let i = 0; i < rectsToRender.length; i++) {
+    const rect = rectsToRender[i]
+    // Create a highlight element
+    const highlight = document.createElement('div')
+    highlight.style.position = 'absolute'
+    highlight.style.left = rect.left + 'px'
+    highlight.style.top = rect.top + 'px'
+    highlight.style.width = rect.width + 'px'
+    highlight.style.height = rect.height + 'px'
+    highlight.style.backgroundColor = 'yellow'
+    highlight.style.mixBlendMode = 'multiply'
+    highlight.style.opacity = '0.4'
+    highlight.style.pointerEvents = 'none'
+    highlight.style.zIndex = '1'
+    highlightsLayer.appendChild(highlight)
+  }
+}
+
 addCommentBtn.addEventListener('click', () => {
 
   const normalize = (s) => s.replace(/\s+/g, ' ').trim()
@@ -252,6 +273,8 @@ addCommentBtn.addEventListener('click', () => {
   
   const objToSave = {
     id: crypto.randomUUID(),
+    document_id: currentDocumentId,
+    sort_index: `${(currentPageNum-1).toString().padStart(5, '0')}|${index.toString().padStart(6, '0')}|${Math.round(rectsToSave[0].top).toString().padStart(5, '0')}`,
     quote: normalizedSelectedText,
     prefix: prefix,
     suffix: suffix,
@@ -261,4 +284,10 @@ addCommentBtn.addEventListener('click', () => {
     rects: JSON.stringify(rectsToSave),
     created_at: new Date().toISOString(),
   }
+  
+  // save to database
+  window.api.createHighlight(objToSave)
+
+  // render highlights
+  renderHighlights(rectsToSave)
 })

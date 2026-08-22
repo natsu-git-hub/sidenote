@@ -21,5 +21,12 @@ body {
 #addCommentBtn {
   position: absolute;
   display: none;
-  z-index: 1;
+  z-index: 10;
 }
+#highlightLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
