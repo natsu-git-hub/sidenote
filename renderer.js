@@ -289,12 +289,30 @@ textLayer.addEventListener('mouseup', () => {
   }
 })
 
+// Creates a textarea + Save card for a highlight and appends it to the rail
+function createComposeCard(onSave) {
+  const commentElement = document.createElement('div')
+  const commentTextarea = document.createElement('textarea')
+  const commentSaveBtn = document.createElement('button')
+  commentTextarea.className = 'comment-textarea'
+  commentSaveBtn.className = 'comment-save-btn'
+  commentSaveBtn.textContent = 'Save'
+  commentElement.className = 'comment'
+  commentSaveBtn.onclick = () => {
+    onSave(commentTextarea.value)
+    commentTextarea.value = ''
+  }
+  commentElement.appendChild(commentTextarea)
+  commentElement.appendChild(commentSaveBtn)
+  commentRail.appendChild(commentElement)
+}
+
 textLayer.addEventListener('click', (event) => {
   // Get relative position of click
   const rect = textLayer.getBoundingClientRect()
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
-  
+
   // Find which unlabeled highlight contains this position
   outer: for (let i = 0; i < unlabeledHighlights.length; i++) {
     const highlight = unlabeledHighlights[i]
@@ -302,10 +320,20 @@ textLayer.addEventListener('click', (event) => {
     for (let j = 0; j < rects.length; j++) {
       const rect = rects[j]
       if (x >= rect.left && x <= rect.left + rect.width &&
-          y >= rect.top && y <= rect.top + rect.height) {
+        y >= rect.top && y <= rect.top + rect.height) {
         // This is the highlight that was clicked
-        console.log('Clicked on highlight:', highlight.highlight.id)
-        // TODO: Add comment to this highlight
+        createComposeCard((body) => {
+          window.api.createComment({
+            id: crypto.randomUUID(),
+            highlight_id: highlight.highlight.id,
+            parent_id: null,
+            seq: 0,
+            author_kind: 'human',
+            author_name: 'You',
+            body: body,
+            created_at: new Date().toISOString()
+          })
+        })
         break outer
       }
     }
@@ -358,9 +386,19 @@ addCommentBtn.addEventListener('click', () => {
     created_at: new Date().toISOString(),
   }
 
-  // save to database
-  window.api.createHighlight(objToSave)
-
-  // render highlights
-  renderHighlights(rectsToSave)
+  createComposeCard((body) => {
+    window.api.createHighlight(objToSave)
+    window.api.createComment({
+      id: crypto.randomUUID(),
+      highlight_id: objToSave.id,
+      parent_id: null,
+      seq: 0,
+      author_kind: 'human',
+      author_name: 'You',
+      body: body,
+      created_at: new Date().toISOString()
+    })
+    renderHighlights(rectsToSave)
+    addCommentBtn.style.display = 'none'
+  })
 })
