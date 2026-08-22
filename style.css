@@ -21,4 +21,5 @@ body {
 #addCommentBtn {
   position: absolute;
   display: none;
+  z-index: 1;
 }

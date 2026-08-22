@@ -8,6 +8,8 @@ const thumbnailSidebar = document.getElementById('thumbnailSidebar')
 let currentPdf = null
 let currentPageNum = 1
 let currentScale = 1.5
+let currentPageText = ''
+let currentDocumentId = null
 
 // Rebuilds the <ul> from scratch given a full list of file paths
 function renderList(paths) {
@@ -57,8 +59,12 @@ document.addEventListener('drop', async (event) => {
 // Open a PDF file
 async function openPdf(filePath) {
   const bytes = await window.api.readBytes(filePath)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes)
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
-  
+  const sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  const title = filePath.split('/').pop()
+  currentDocumentId = await window.api.getOrCreateDocument(sha256, title, filePath)
+
   currentPdf = pdf
   currentPageNum = 1
   currentScale = 1.5
@@ -88,6 +94,7 @@ async function renderPage(pageNum) {
   await page.render({ canvasContext: context, viewport }).promise
 
   const textContent = await page.getTextContent()
+
   const textLayerDiv = document.getElementById('textLayer')
   textLayerDiv.innerHTML = ''
   textLayerDiv.style.width = `${viewport.width}px`
@@ -99,7 +106,11 @@ async function renderPage(pageNum) {
     container: textLayerDiv,
     viewport: viewport
   })
+  
   await textLayer.render()
+  
+  // Store the text content for later use
+  currentPageText = textContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
 }
 
 // Handle page navigation
@@ -195,21 +206,59 @@ async function renderThumbnails() {
 const addCommentBtn = document.getElementById('addCommentBtn')
 const pageContainer = document.getElementById('pageContainer')
 const textLayer = document.getElementById('textLayer')
+let selectedText = ''
+let rectsToSave = []
 
 textLayer.addEventListener('mouseup', () => {
   const selection = window.getSelection()
-  const selectionText = selection.toString()
-  if (selectionText) {
+  selectedText = selection.toString()
+  if (selectedText) {
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
+    const rects = range.getClientRects()
 
     // position at top right of selected text
     const pageContainerRect = pageContainer.getBoundingClientRect()
     addCommentBtn.style.display = 'block'
     addCommentBtn.style.top = (rect.top - pageContainerRect.top) + 'px'
     addCommentBtn.style.left = (rect.right - pageContainerRect.left) + 'px'
+    
+    // Store the rectangle for later use
+    rectsToSave = Array.from(rects).map(r => ({
+      left: r.left - pageContainerRect.left,
+      top: r.top - pageContainerRect.top,
+      width: r.width,
+      height: r.height
+    }))
   }
   else {
+    selectedText = ''
+    rectsToSave = []
     addCommentBtn.style.display = 'none'
+  }
+})
+
+addCommentBtn.addEventListener('click', () => {
+
+  const normalize = (s) => s.replace(/\s+/g, ' ').trim()
+  const normalizedCurrentPageText = normalize(currentPageText)
+  const normalizedSelectedText = normalize(selectedText)
+  const index = normalizedCurrentPageText.indexOf(normalizedSelectedText)
+
+  // prefix of 32 characters before the selected text
+  const prefix = normalizedCurrentPageText.substring(Math.max(0, index - 32), index)
+  // suffix of 32 characters after the selected text
+  const suffix = normalizedCurrentPageText.substring(index + normalizedSelectedText.length, index + normalizedSelectedText.length + 32)
+  
+  const objToSave = {
+    id: crypto.randomUUID(),
+    quote: normalizedSelectedText,
+    prefix: prefix,
+    suffix: suffix,
+    char_start: index,
+    char_end: index + normalizedSelectedText.length,
+    page_index: currentPageNum - 1,
+    rects: JSON.stringify(rectsToSave),
+    created_at: new Date().toISOString(),
   }
 })

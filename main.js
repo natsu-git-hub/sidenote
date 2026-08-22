@@ -2,6 +2,7 @@ const { app, dialog, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const Database = require('better-sqlite3')
+const crypto = require('crypto')
 
 // Initialize database
 const db = new Database(path.join(app.getPath('userData'), 'sidenote.db'))
@@ -138,4 +139,15 @@ app.whenReady().then(() => {
 
   // Read file bytes
   ipcMain.handle('file:readBytes', (event, filePath) => fs.readFileSync(filePath))
+
+  // Get or create document
+  ipcMain.handle('document:getOrCreate', (event, { sha256, title, filePath }) => {
+    const existing = db.prepare('SELECT id FROM documents WHERE sha256 = ?').get(sha256)
+    if (existing) return existing.id
+
+    const id = crypto.randomUUID()
+    db.prepare('INSERT INTO documents (id, sha256, title, last_path) VALUES (?, ?, ?, ?)')
+      .run(id, sha256, title, filePath)
+    return id
+  })
 })
