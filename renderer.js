@@ -11,6 +11,7 @@ let currentPageNum = 1
 let currentScale = 1.5
 let currentPageText = ''
 let currentDocumentId = null
+let unlabeledHighlights = []
 
 // Rebuilds the <ul> from scratch given a full list of file paths
 function renderList(paths) {
@@ -72,10 +73,10 @@ async function openPdf(filePath) {
 
   // Render the first page
   await renderPage(currentPageNum)
-  
+
   // Render thumbnails
   await renderThumbnails()
-  
+
   return pdf
 }
 
@@ -107,31 +108,59 @@ async function renderPage(pageNum) {
     container: textLayerDiv,
     viewport: viewport
   })
-  
+
   await textLayer.render()
-  
+
   // Store the text content for later use
   currentPageText = textContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
 
   // Get highlights for this page
   const highlights = await window.api.getHighlightsByPage(currentDocumentId, currentPageNum - 1)
-  
   // Clear existing comments
   commentRail.innerHTML = ''
-
   // Clear existing highlights
   highlightsLayer.innerHTML = ''
-  
-  for (const highlight of highlights) {
-    // Create a comment element for each highlight
-    const commentElement = document.createElement('div')
-    commentElement.className = 'comment'
-    commentElement.textContent = highlight.quote
-    commentRail.appendChild(commentElement)
+  // Reset unlabeled highlights for this page
+  unlabeledHighlights = []
 
+  for (const highlight of highlights) {
+    // Get comments for this highlight
+    const comments = await window.api.getCommentsByHighlight(highlight.id)
+    if (comments.length !== 0) {
+      // Create a comment element for each highlight
+      const commentElement = document.createElement('div')
+      const commentTextarea = document.createElement('textarea')
+      const commentSaveBtn = document.createElement('button')
+      commentTextarea.className = 'comment-textarea'
+      commentSaveBtn.className = 'comment-save-btn'
+      commentSaveBtn.textContent = 'Save'
+      commentElement.className = 'comment'
+      commentSaveBtn.onclick = () => {
+        const comment = commentTextarea.value
+        window.api.createComment({
+          id: crypto.randomUUID(),
+          highlight_id: highlight.id,
+          parent_id: null,
+          seq: 0,
+          author_kind: 'human',
+          author_name: 'You',
+          body: comment,
+          created_at: new Date().toISOString()
+        })
+        commentTextarea.value = ''
+      }
+      commentElement.textContent = comments[0].body
+      commentElement.appendChild(commentTextarea)
+      commentElement.appendChild(commentSaveBtn)
+      commentRail.appendChild(commentElement)
+    }
+    else {
+      unlabeledHighlights.push({ highlight, rects: JSON.parse(highlight.rects) })
+    }
     // Apply existing highlight
     renderHighlights(JSON.parse(highlight.rects))
   }
+  console.log(unlabeledHighlights.length)
 }
 
 // Handle page navigation
@@ -144,7 +173,7 @@ prevBtn.addEventListener('click', () => {
     currentPageNum--
     renderPage(currentPageNum)
   }
-})  
+})
 
 nextBtn.addEventListener('click', () => {
   if (currentPageNum < currentPdf.numPages) {
@@ -173,7 +202,7 @@ zoomInBtn.addEventListener('click', () => {
   if (currentScale < 3) {
     currentScale += 0.1
   }
-  else{
+  else {
     currentScale = 3
   }
   renderPage(currentPageNum)
@@ -183,7 +212,7 @@ zoomOutBtn.addEventListener('click', () => {
   if (currentScale > 0.5) {
     currentScale -= 0.1
   }
-  else{
+  else {
     currentScale = 0.5
   }
   renderPage(currentPageNum)
@@ -203,11 +232,11 @@ zoomLevelInput.addEventListener('change', () => {
 // Render thumbnails
 async function renderThumbnails() {
   thumbnailSidebar.innerHTML = ''
-  
+
   for (let i = 1; i <= currentPdf.numPages; i++) {
     const page = await currentPdf.getPage(i)
     const viewport = page.getViewport({ scale: 0.2 })
-    
+
     const canvas = document.createElement('canvas')
     canvas.width = viewport.width
     canvas.height = viewport.height
@@ -216,9 +245,9 @@ async function renderThumbnails() {
       currentPageNum = i
       renderPage(currentPageNum)
     })
-    
+
     await page.render({ canvasContext: context, viewport }).promise
-    
+
     thumbnailSidebar.appendChild(canvas)
   }
 }
@@ -244,7 +273,7 @@ textLayer.addEventListener('mouseup', () => {
     addCommentBtn.style.display = 'block'
     addCommentBtn.style.top = (rect.top - pageContainerRect.top) + 'px'
     addCommentBtn.style.left = (rect.right - pageContainerRect.left) + 'px'
-    
+
     // Store the rectangle for later use
     rectsToSave = Array.from(rects).map(r => ({
       left: r.left - pageContainerRect.left,
@@ -257,6 +286,29 @@ textLayer.addEventListener('mouseup', () => {
     selectedText = ''
     rectsToSave = []
     addCommentBtn.style.display = 'none'
+  }
+})
+
+textLayer.addEventListener('click', (event) => {
+  // Get relative position of click
+  const rect = textLayer.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // Find which unlabeled highlight contains this position
+  outer: for (let i = 0; i < unlabeledHighlights.length; i++) {
+    const highlight = unlabeledHighlights[i]
+    const rects = highlight.rects
+    for (let j = 0; j < rects.length; j++) {
+      const rect = rects[j]
+      if (x >= rect.left && x <= rect.left + rect.width &&
+          y >= rect.top && y <= rect.top + rect.height) {
+        // This is the highlight that was clicked
+        console.log('Clicked on highlight:', highlight.highlight.id)
+        // TODO: Add comment to this highlight
+        break outer
+      }
+    }
   }
 })
 
@@ -291,11 +343,11 @@ addCommentBtn.addEventListener('click', () => {
   const prefix = normalizedCurrentPageText.substring(Math.max(0, index - 32), index)
   // suffix of 32 characters after the selected text
   const suffix = normalizedCurrentPageText.substring(index + normalizedSelectedText.length, index + normalizedSelectedText.length + 32)
-  
+
   const objToSave = {
     id: crypto.randomUUID(),
     document_id: currentDocumentId,
-    sort_index: `${(currentPageNum-1).toString().padStart(5, '0')}|${index.toString().padStart(6, '0')}|${Math.round(rectsToSave[0].top).toString().padStart(5, '0')}`,
+    sort_index: `${(currentPageNum - 1).toString().padStart(5, '0')}|${index.toString().padStart(6, '0')}|${Math.round(rectsToSave[0].top).toString().padStart(5, '0')}`,
     quote: normalizedSelectedText,
     prefix: prefix,
     suffix: suffix,
@@ -305,7 +357,7 @@ addCommentBtn.addEventListener('click', () => {
     rects: JSON.stringify(rectsToSave),
     created_at: new Date().toISOString(),
   }
-  
+
   // save to database
   window.api.createHighlight(objToSave)
 

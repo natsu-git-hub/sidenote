@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   readBytes: (filePath) => ipcRenderer.invoke('file:readBytes', filePath),
   getOrCreateDocument: (sha256, title, filePath) => ipcRenderer.invoke('document:getOrCreate', { sha256, title, filePath }),
   createHighlight: (highlight) => ipcRenderer.invoke('highlight:create', highlight),
-  getHighlightsByPage: (documentId, pageIndex) => ipcRenderer.invoke('highlights:getByPage', documentId, pageIndex)
+  getHighlightsByPage: (documentId, pageIndex) => ipcRenderer.invoke('highlights:getByPage', documentId, pageIndex),
+  createComment: (comment) => ipcRenderer.invoke('comment:create', comment),
+  getCommentsByHighlight: (highlightId) => ipcRenderer.invoke('comments:getByHighlight', highlightId)
 })

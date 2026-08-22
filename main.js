@@ -161,4 +161,15 @@ app.whenReady().then(() => {
   ipcMain.handle('highlights:getByPage', (event, documentId, pageIndex) => {
     return db.prepare('SELECT * FROM highlights WHERE document_id = ? AND page_index = ? ORDER BY sort_index').all(documentId, pageIndex)
   })
+
+  // Create comment
+  ipcMain.handle('comment:create', (event, comment) => {
+    db.prepare('INSERT INTO comments (id, highlight_id, parent_id, seq, author_kind, author_name, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(comment.id, comment.highlight_id, comment.parent_id, comment.seq, comment.author_kind, comment.author_name, comment.body, comment.created_at)
+  })
+
+  // Get comments by highlight ID
+  ipcMain.handle('comments:getByHighlight', (event, highlightId) => {
+    return db.prepare('SELECT * FROM comments WHERE highlight_id = ? ORDER BY seq').all(highlightId)
+  })
 })
