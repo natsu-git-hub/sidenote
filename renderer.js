@@ -202,9 +202,6 @@ textLayer.addEventListener('mouseup', () => {
   if (selectionText) {
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
-    console.log('Selected text:', selectionText)
-    console.log('Range:', range)
-    console.log('Rect:', rect)
 
     // position at top right of selected text
     const pageContainerRect = pageContainer.getBoundingClientRect()
