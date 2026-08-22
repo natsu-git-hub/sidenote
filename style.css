@@ -18,3 +18,7 @@ body {
 #zoomLevel {
   width: 4em;
 }
+#addCommentBtn {
+  position: absolute;
+  display: none;
+}

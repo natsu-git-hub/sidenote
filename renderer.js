@@ -190,3 +190,29 @@ async function renderThumbnails() {
     thumbnailSidebar.appendChild(canvas)
   }
 }
+
+// Handle text selection
+const addCommentBtn = document.getElementById('addCommentBtn')
+const pageContainer = document.getElementById('pageContainer')
+const textLayer = document.getElementById('textLayer')
+
+textLayer.addEventListener('mouseup', () => {
+  const selection = window.getSelection()
+  const selectionText = selection.toString()
+  if (selectionText) {
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    console.log('Selected text:', selectionText)
+    console.log('Range:', range)
+    console.log('Rect:', rect)
+
+    // position at top right of selected text
+    const pageContainerRect = pageContainer.getBoundingClientRect()
+    addCommentBtn.style.display = 'block'
+    addCommentBtn.style.top = (rect.top - pageContainerRect.top) + 'px'
+    addCommentBtn.style.left = (rect.right - pageContainerRect.left) + 'px'
+  }
+  else {
+    addCommentBtn.style.display = 'none'
+  }
+})
