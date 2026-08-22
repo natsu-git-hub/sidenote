@@ -1,6 +1,11 @@
 const { app, dialog, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const Database = require('better-sqlite3')
+
+// Initialize database
+const db = new Database(path.join(app.getPath('userData'), 'sidenote.db'))
+console.log('Database initialized at:', path.join(app.getPath('userData'), 'sidenote.db'))
 
 // Resolved lazily since app.getPath() only works after the app is ready
 function getLibraryPath() {
