@@ -29,11 +29,14 @@
       <input id="zoomLevel" type="number" value="150" min="50" max="300">
       <button id="zoomOutBtn">Zoom Out</button>
     </div>
-    <div id="pageContainer">
-      <button id="addCommentBtn">+</button>
-      <div id="highlightLayer"></div>
-      <canvas id="pdfCanvas"></canvas>
-      <div id="textLayer" class="textLayer"></div>
+    <div id="readerLayout">
+      <div id="pageContainer">
+        <button id="addCommentBtn">+</button>
+        <div id="highlightLayer"></div>
+        <canvas id="pdfCanvas"></canvas>
+        <div id="textLayer" class="textLayer"></div>
+      </div>
+      <div id="commentRail"></div>
     </div>
     <script type="module" src="renderer.js"></script>
   </body>

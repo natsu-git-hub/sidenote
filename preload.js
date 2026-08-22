@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('api', {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   readBytes: (filePath) => ipcRenderer.invoke('file:readBytes', filePath),
   getOrCreateDocument: (sha256, title, filePath) => ipcRenderer.invoke('document:getOrCreate', { sha256, title, filePath }),
-  createHighlight: (highlight) => ipcRenderer.invoke('highlight:create', highlight)
+  createHighlight: (highlight) => ipcRenderer.invoke('highlight:create', highlight),
+  getHighlightsByPage: (documentId, pageIndex) => ipcRenderer.invoke('highlights:getByPage', documentId, pageIndex)
 })

@@ -4,6 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.wo
 const openBtn = document.getElementById('openBtn')
 const fileList = document.getElementById('fileList')
 const thumbnailSidebar = document.getElementById('thumbnailSidebar')
+const commentRail = document.getElementById('commentRail')
 
 let currentPdf = null
 let currentPageNum = 1
@@ -111,6 +112,26 @@ async function renderPage(pageNum) {
   
   // Store the text content for later use
   currentPageText = textContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
+
+  // Get highlights for this page
+  const highlights = await window.api.getHighlightsByPage(currentDocumentId, currentPageNum - 1)
+  
+  // Clear existing comments
+  commentRail.innerHTML = ''
+
+  // Clear existing highlights
+  highlightsLayer.innerHTML = ''
+  
+  for (const highlight of highlights) {
+    // Create a comment element for each highlight
+    const commentElement = document.createElement('div')
+    commentElement.className = 'comment'
+    commentElement.textContent = highlight.quote
+    commentRail.appendChild(commentElement)
+
+    // Apply existing highlight
+    renderHighlights(JSON.parse(highlight.rects))
+  }
 }
 
 // Handle page navigation

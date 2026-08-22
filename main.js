@@ -156,4 +156,9 @@ app.whenReady().then(() => {
     db.prepare('INSERT INTO highlights (id, document_id, sort_index, quote, prefix, suffix, char_start, char_end, page_index, rects, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(highlight.id, highlight.document_id, highlight.sort_index, highlight.quote, highlight.prefix, highlight.suffix, highlight.char_start, highlight.char_end, highlight.page_index, highlight.rects, highlight.created_at)
   })
+
+  // Get annotations for a document in sorted order
+  ipcMain.handle('highlights:getByPage', (event, documentId, pageIndex) => {
+    return db.prepare('SELECT * FROM highlights WHERE document_id = ? AND page_index = ? ORDER BY sort_index').all(documentId, pageIndex)
+  })
 })
