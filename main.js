@@ -5,7 +5,56 @@ const Database = require('better-sqlite3')
 
 // Initialize database
 const db = new Database(path.join(app.getPath('userData'), 'sidenote.db'))
-console.log('Database initialized at:', path.join(app.getPath('userData'), 'sidenote.db'))
+
+// Create the table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS documents (
+    id          TEXT PRIMARY KEY,
+    sha256      TEXT,
+    pdf_id      TEXT,
+    fingerprint TEXT,
+    title       TEXT,
+    last_path   TEXT
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS highlights (
+    id          TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES documents(id),
+    sort_index  TEXT NOT NULL,
+    color       TEXT,
+    quote       TEXT NOT NULL,
+    prefix      TEXT NOT NULL,
+    suffix      TEXT NOT NULL,
+    char_start  INTEGER,
+    char_end    INTEGER,
+    page_index  INTEGER NOT NULL,
+    rects       TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS comments (
+    id           TEXT PRIMARY KEY,
+    highlight_id TEXT NOT NULL REFERENCES highlights(id),
+    parent_id    TEXT REFERENCES comments(id),
+    seq          INTEGER NOT NULL,
+    author_kind  TEXT NOT NULL,
+    author_name  TEXT NOT NULL,
+    body         TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    edited_at    TEXT,
+    resolved     INTEGER DEFAULT 0,
+    ai_provider   TEXT,
+    ai_model      TEXT,
+    ai_context    TEXT,
+    ai_tokens_in  INTEGER,
+    ai_tokens_out INTEGER
+  )
+`)
+
 
 // Resolved lazily since app.getPath() only works after the app is ready
 function getLibraryPath() {
