@@ -1,0 +1,20 @@
+body {
+  background-color: white;
+  color: black;
+}
+#pageContainer {
+  position: relative;
+}
+#textLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+}
+#pageNum {
+  width: 3em;
+}
+#zoomLevel {
+  width: 4em;
+}

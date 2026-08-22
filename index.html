@@ -11,6 +11,8 @@
       http-equiv="X-Content-Security-Policy"
       content="default-src 'self'; script-src 'self'"
     />
+    <link rel="stylesheet" href="node_modules/pdfjs-dist/web/pdf_viewer.css">
+    <link rel="stylesheet" href="style.css">
     <title>Sidenote</title>
   </head>
   <body>
@@ -21,13 +23,16 @@
     <div id="thumbnailSidebar"></div>
     <div>
       <button id="prevBtn">Prev</button>
-      <input id="pageNum" type="number" value="1" min="1" style="width: 3em">
+      <input id="pageNum" type="number" value="1" min="1">
       <button id="nextBtn">Next</button>
       <button id="zoomInBtn">Zoom In</button>
-      <input id="zoomLevel" type="number" value="150" min="50" max="300" style="width: 4em">
+      <input id="zoomLevel" type="number" value="150" min="50" max="300">
       <button id="zoomOutBtn">Zoom Out</button>
     </div>
-    <canvas id="pdfCanvas"></canvas>
+    <div id="pageContainer">
+      <canvas id="pdfCanvas"></canvas>
+      <div id="textLayer" class="textLayer"></div>
+    </div>
     <script type="module" src="renderer.js"></script>
   </body>
 </html>

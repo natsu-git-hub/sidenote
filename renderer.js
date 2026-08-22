@@ -86,6 +86,20 @@ async function renderPage(pageNum) {
   zoomLevelInput.value = Math.round(currentScale * 100)
 
   await page.render({ canvasContext: context, viewport }).promise
+
+  const textContent = await page.getTextContent()
+  const textLayerDiv = document.getElementById('textLayer')
+  textLayerDiv.innerHTML = ''
+  textLayerDiv.style.width = `${viewport.width}px`
+  textLayerDiv.style.height = `${viewport.height}px`
+  textLayerDiv.style.setProperty('--total-scale-factor', viewport.scale)
+
+  const textLayer = new pdfjsLib.TextLayer({
+    textContentSource: textContent,
+    container: textLayerDiv,
+    viewport: viewport
+  })
+  await textLayer.render()
 }
 
 // Handle page navigation
