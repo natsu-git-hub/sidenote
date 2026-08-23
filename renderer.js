@@ -14,19 +14,19 @@ let currentPageText = ''
 let currentDocumentId = null
 let unlabeledHighlights = []
 
-// Rebuilds the <ul> from scratch given a full list of file paths
-function renderList(paths) {
+// Rebuilds the <ul> from scratch given the documents table's rows
+function renderList(documents) {
   // clear the file list
   fileList.innerHTML = ''
 
-  for (const filePath of paths) {
+  for (const doc of documents) {
     const li = document.createElement('li')
-    li.textContent = filePath
+    li.textContent = doc.title
     li.addEventListener('click', async () => {
       try {
-        await openPdf(filePath)
+        await openPdf(doc.last_path)
       } catch (error) {
-        alert(`Couldn't open "${filePath}" — it may have been moved or deleted.`)
+        alert(`Couldn't open "${doc.last_path}" — it may have been moved or deleted.`)
         console.error(error)
       }
     })
@@ -34,16 +34,51 @@ function renderList(paths) {
   }
 }
 
-// Opens the file picker, then re-renders the list with the updated library
+// Re-fetches the documents table and redraws the file list
+async function refreshFileList() {
+  const documents = await window.api.getDocuments()
+  renderList(documents)
+}
+
+// Hashes/fingerprints a file and gets-or-creates its documents row.
+// Used both when a file is first added and every time it's opened.
+async function registerDocument(filePath) {
+  const bytes = await window.api.readBytes(filePath)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes)
+  const sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+  const pdf_id = pdf.fingerprints[0]
+  const page1 = await pdf.getPage(1)
+  const page1TextContent = await page1.getTextContent()
+  const page1Text = page1TextContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
+  const fingerprint = normalize(page1Text) + '|' + pdf.numPages
+
+  const title = filePath.split('/').pop()
+  return window.api.getOrCreateDocument(sha256, title, filePath, pdf_id, fingerprint)
+}
+
+// Registers each file path as a document, then refreshes the list.
+// Used by both the "Open PDF" dialog and drag-and-drop.
+async function addFilesToLibrary(filePaths) {
+  for (const filePath of filePaths) {
+    try {
+      await registerDocument(filePath)
+    } catch (error) {
+      alert(`Couldn't add "${filePath}" — is it a valid PDF?`)
+      console.error(error)
+    }
+  }
+  await refreshFileList()
+}
+
 openBtn.addEventListener('click', async () => {
-  const result = await window.api.openFile()
-  renderList(result)
+  const filePaths = await window.api.openFile()
+  await addFilesToLibrary(filePaths)
 })
 
 // Load the library on startup
-window.api.getLibrary().then((result) => {
-  renderList(result)
-})
+refreshFileList()
 
 // Handle drag and drop
 document.addEventListener('dragover', (event) => {
@@ -52,35 +87,16 @@ document.addEventListener('dragover', (event) => {
 
 document.addEventListener('drop', async (event) => {
   event.preventDefault()
-
-  const files = event.dataTransfer.files
-  const paths = []
-
-  for (const file of files) {
-    paths.push(window.api.getPathForFile(file))
-  }
-
-  const result = await window.api.addFiles(paths)
-  renderList(result)
+  const filePaths = Array.from(event.dataTransfer.files).map(file => window.api.getPathForFile(file))
+  await addFilesToLibrary(filePaths)
 })
 
 // Open a PDF file
 async function openPdf(filePath) {
+  currentDocumentId = await registerDocument(filePath)
+
   const bytes = await window.api.readBytes(filePath)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes)
-  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
-
-  const pdf_id = pdf.fingerprints[0]
-  const page1 = await pdf.getPage(1)
-  const page1TextContent = await page1.getTextContent()
-  const page1Text = page1TextContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
-  const fingerprint = normalize(page1Text) + '|' + pdf.numPages
-
-  const sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-  const title = filePath.split('/').pop()
-  currentDocumentId = await window.api.getOrCreateDocument(sha256, title, filePath, pdf_id, fingerprint)
-
-  currentPdf = pdf
+  currentPdf = await pdfjsLib.getDocument({ data: bytes }).promise
   currentPageNum = 1
   currentScale = 1.5
 
@@ -90,7 +106,7 @@ async function openPdf(filePath) {
   // Render thumbnails
   await renderThumbnails()
 
-  return pdf
+  return currentPdf
 }
 
 // Render a page
