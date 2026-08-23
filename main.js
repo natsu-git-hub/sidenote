@@ -3,7 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const Database = require('better-sqlite3')
 const crypto = require('crypto')
-const { PDFDocument } = require('pdf-lib')
+const { PDFDocument, PDFName } = require('pdf-lib')
 
 // Initialize database
 const db = new Database(path.join(app.getPath('userData'), 'sidenote.db'))
@@ -104,6 +104,17 @@ function clearLibrary() {
   console.log('Library cleared successfully')
 }
 
+// rect to Quad points
+function rectToQuadPoints(rect, pageHeight) {
+  const y = pageHeight - (rect.top + rect.height)
+  return [
+    { x: rect.left, y: y + rect.height },
+    { x: rect.left + rect.width, y: y + rect.height },
+    { x: rect.left, y: y },
+    { x: rect.left + rect.width, y: y }
+  ]
+}
+
 app.whenReady().then(() => {
   // Main window, loads the renderer HTML via the preload bridge
   const win = new BrowserWindow({
@@ -182,10 +193,56 @@ app.whenReady().then(() => {
     const filePath = document.last_path
     const bytes = fs.readFileSync(filePath)
     const pdfDoc = await PDFDocument.load(bytes)
+
     for (const highlight of highlights) {
       const comments = db.prepare('SELECT * FROM comments WHERE highlight_id = ? ORDER BY seq').all(highlight.id)
-      console.log("Highlight:", highlight)
-      console.log("Comments:", comments, "\n\n")
+      if (comments.length === 0) continue
+
+      const page = pdfDoc.getPage(highlight.page_index)
+      const { height: pageHeight } = page.getSize()
+      const rects = JSON.parse(highlight.rects).filter(r => r.width > 0 && r.height > 0)
+
+      const quadPointsFlat = rects.flatMap(r => {
+        const q = rectToQuadPoints(r, pageHeight)
+        return q.flatMap(p => [p.x, p.y])
+      })
+
+      const xs = quadPointsFlat.filter((_, i) => i % 2 === 0)
+      const ys = quadPointsFlat.filter((_, i) => i % 2 === 1)
+      const boundingRect = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+
+      const highlightAnnot = pdfDoc.context.obj({
+        Type: 'Annot',
+        Subtype: 'Highlight',
+        Rect: boundingRect,
+        QuadPoints: quadPointsFlat,
+        C: [1, 1, 0],
+        T: comments[0].author_name,
+        Contents: comments[0].body,
+        F: 4,
+        NM: highlight.id,
+      })
+      const highlightRef = pdfDoc.context.register(highlightAnnot)
+
+      const existingAnnots = page.node.Annots()
+      if (existingAnnots) existingAnnots.push(highlightRef)
+      else page.node.set(PDFName.of('Annots'), pdfDoc.context.obj([highlightRef]))
+
+      const noteRect = [boundingRect[0], boundingRect[3] - 20, boundingRect[0] + 20, boundingRect[3]]
+
+      for (const reply of comments.slice(1)) {
+        const replyAnnot = pdfDoc.context.obj({
+          Type: 'Annot',
+          Subtype: 'Text',
+          Rect: noteRect,
+          T: reply.author_name,
+          Contents: reply.body,
+          IRT: highlightRef,
+          RT: 'R',
+        })
+        const replyRef = pdfDoc.context.register(replyAnnot)
+        page.node.Annots().push(replyRef)
+      }
     }
     const outBytes = await pdfDoc.save()
     const outPath = filePath.replace('.pdf', '_annotated.pdf')

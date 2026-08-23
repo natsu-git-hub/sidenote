@@ -296,7 +296,7 @@ textLayer.addEventListener('mouseup', () => {
     addCommentBtn.style.left = (rect.right - pageContainerRect.left) + 'px'
 
     // Store the rectangle for later use
-    rectsToSave = Array.from(rects).map(r => ({
+    rectsToSave = Array.from(rects).filter(r => r.width > 0 && r.height > 0).map(r => ({
       left: (r.left - pageContainerRect.left)/currentScale,
       top: (r.top - pageContainerRect.top)/currentScale,
       width: r.width/currentScale,
