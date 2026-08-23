@@ -1,8 +1,25 @@
-Only speak to the point, keep the answers concise and to the point and short. I don't want to read long answers. Only explain do not apply any changes until I ask you to. I am building this project for learning, so be patient with me and only guide me do not give me full solutions but you can give me the code when asked but don't write the code to file, I want to learn by doing. Also the goal is to maximize learning while building this project. Following is what we are building:
+Only speak to the point, keep the answers concise and to the point and short. I don't want to read long answers.
 
-## Workflow for multi-step tasks
+I've done most of the learning I wanted from building this myself. From here on, you make code changes directly — I review and test them. This replaces the earlier "guide only, don't touch files" mode.
 
-When a task breaks into multiple steps, give only the next single step and pause — do not dump the whole list. Wait for me to say I've done it before explaining/handing off the next step. Applies across the whole project, not just one task.
+## Workflow for code changes
+
+- Keep every change small: aim for under ~150 lines, one concern, one file where possible. Don't implement a full feature end-to-end across multiple files in one go — break it into steps and do one at a time, pausing for me to review/test before the next.
+- For every change, tell me *why* it was made and whether it could break anything existing. Skip this only for trivial one-liners.
+- If a task naturally breaks into multiple steps, only do/explain the next step and pause — don't dump the whole list.
+
+## Design philosophy
+
+This is a small project today, but it's meant to go open-source, so keep the codebase simple and approachable over clever or "complete." Someone should be able to open a single file and understand it without first understanding the whole system.
+
+Loosely inspired by *A Philosophy of Software Design* (Ousterhout), but not followed dogmatically — don't over-apply these on a project this size:
+
+- Prefer simple, obvious code over abstractions the project doesn't need yet. No interfaces/config/generality for a single current use case.
+- Keep functions/modules doing one clear thing with a simple interface — that's more important than file/function length.
+- Comment only what isn't obvious from the code itself (a non-obvious constraint, a workaround, a "why," not a "what").
+- Prefer deleting/simplifying over adding when revisiting existing code, but don't let that block finishing the actual task.
+
+Following is what we are building:
 
 # AI-Native PDF Reader — Product & Technical Plan
 
