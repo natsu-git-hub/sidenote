@@ -140,8 +140,8 @@ async function renderPage(pageNum) {
         window.api.createComment({
           id: crypto.randomUUID(),
           highlight_id: highlight.id,
-          parent_id: null,
-          seq: 0,
+          parent_id: comments[0].id,
+          seq: comments.length,
           author_kind: 'human',
           author_name: 'You',
           body: comment,
@@ -150,6 +150,12 @@ async function renderPage(pageNum) {
         commentTextarea.value = ''
       }
       commentElement.textContent = comments[0].body
+      for (const comment of comments.slice(1)) {
+        const commentReplyElement = document.createElement('div')
+        commentReplyElement.textContent = comment.body
+        commentReplyElement.className = 'comment-reply'
+        commentElement.appendChild(commentReplyElement)
+      }
       commentElement.appendChild(commentTextarea)
       commentElement.appendChild(commentSaveBtn)
       commentRail.appendChild(commentElement)
