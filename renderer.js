@@ -22,8 +22,13 @@ function renderList(paths) {
   for (const filePath of paths) {
     const li = document.createElement('li')
     li.textContent = filePath
-    li.addEventListener('click', () => {
-      openPdf(filePath)
+    li.addEventListener('click', async () => {
+      try {
+        await openPdf(filePath)
+      } catch (error) {
+        alert(`Couldn't open "${filePath}" — it may have been moved or deleted.`)
+        console.error(error)
+      }
     })
     fileList.appendChild(li)
   }
