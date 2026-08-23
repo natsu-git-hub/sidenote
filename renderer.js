@@ -64,9 +64,16 @@ async function openPdf(filePath) {
   const bytes = await window.api.readBytes(filePath)
   const hashBuffer = await crypto.subtle.digest('SHA-256', bytes)
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+
+  const pdf_id = pdf.fingerprints[0]
+  const page1 = await pdf.getPage(1)
+  const page1TextContent = await page1.getTextContent()
+  const page1Text = page1TextContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
+  const fingerprint = normalize(page1Text) + '|' + pdf.numPages
+
   const sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
   const title = filePath.split('/').pop()
-  currentDocumentId = await window.api.getOrCreateDocument(sha256, title, filePath)
+  currentDocumentId = await window.api.getOrCreateDocument(sha256, title, filePath, pdf_id, fingerprint)
 
   currentPdf = pdf
   currentPageNum = 1
@@ -175,7 +182,6 @@ async function renderPage(pageNum) {
       renderHighlights(JSON.parse(highlight.rects))
     }
   }
-  console.log(unlabeledHighlights.length)
 }
 
 // Handle page navigation

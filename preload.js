@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   addFiles: (filePaths) => ipcRenderer.invoke('library:addFiles', filePaths),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   readBytes: (filePath) => ipcRenderer.invoke('file:readBytes', filePath),
-  getOrCreateDocument: (sha256, title, filePath) => ipcRenderer.invoke('document:getOrCreate', { sha256, title, filePath }),
+  getOrCreateDocument: (sha256, title, filePath, pdf_id, fingerprint) => ipcRenderer.invoke('document:getOrCreate', { sha256, title, filePath, pdf_id, fingerprint }),
   createHighlight: (highlight) => ipcRenderer.invoke('highlight:create', highlight),
   getHighlightsByPage: (documentId, pageIndex) => ipcRenderer.invoke('highlights:getByPage', documentId, pageIndex),
   createComment: (comment) => ipcRenderer.invoke('comment:create', comment),
