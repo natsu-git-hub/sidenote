@@ -122,7 +122,13 @@ async function renderPage(pageNum) {
   // Store the text content for later use
   currentPageText = textContent.items.map(item => item.str + (item.hasEOL ? '\n' : '')).join('')
 
-  // Get highlights for this page
+  await renderAnnotations()
+}
+
+// Loads highlights + comments for the current page and rebuilds the comment
+// rail and highlight overlay. Called on page render and after every save, so
+// new comments/replies show up immediately instead of only on navigation.
+async function renderAnnotations() {
   const highlights = await window.api.getHighlightsByPage(currentDocumentId, currentPageNum - 1)
   // Clear existing comments
   commentRail.innerHTML = ''
@@ -149,9 +155,9 @@ async function renderPage(pageNum) {
       commentSaveBtn.className = 'comment-save-btn'
       commentSaveBtn.textContent = 'Save'
       commentElement.className = 'comment'
-      commentSaveBtn.onclick = () => {
+      commentSaveBtn.onclick = async () => {
         const comment = commentTextarea.value
-        window.api.createComment({
+        await window.api.createComment({
           id: crypto.randomUUID(),
           highlight_id: highlight.id,
           parent_id: comments[0].id,
@@ -161,7 +167,7 @@ async function renderPage(pageNum) {
           body: comment,
           created_at: new Date().toISOString()
         })
-        commentTextarea.value = ''
+        await renderAnnotations()
       }
       commentElement.textContent = comments[0].body
       for (const comment of comments.slice(1)) {
@@ -343,8 +349,8 @@ textLayer.addEventListener('click', (event) => {
       if (x >= (rect.left * currentScale) && x <= (rect.left * currentScale) + (rect.width * currentScale) &&
         y >= (rect.top * currentScale) && y <= (rect.top * currentScale) + (rect.height * currentScale)) {
         // This is the highlight that was clicked
-        createComposeCard((body) => {
-          window.api.createComment({
+        createComposeCard(async (body) => {
+          await window.api.createComment({
             id: crypto.randomUUID(),
             highlight_id: highlight.highlight.id,
             parent_id: null,
@@ -354,6 +360,7 @@ textLayer.addEventListener('click', (event) => {
             body: body,
             created_at: new Date().toISOString()
           })
+          await renderAnnotations()
         })
         break outer
       }
@@ -409,9 +416,9 @@ addCommentBtn.addEventListener('click', () => {
     created_at: new Date().toISOString(),
   }
 
-  createComposeCard((body) => {
-    window.api.createHighlight(objToSave)
-    window.api.createComment({
+  createComposeCard(async (body) => {
+    await window.api.createHighlight(objToSave)
+    await window.api.createComment({
       id: crypto.randomUUID(),
       highlight_id: objToSave.id,
       parent_id: null,
@@ -421,8 +428,8 @@ addCommentBtn.addEventListener('click', () => {
       body: body,
       created_at: new Date().toISOString()
     })
-    renderHighlights(rectsToSave)
     addCommentBtn.style.display = 'none'
+    await renderAnnotations()
   })
 })
 
