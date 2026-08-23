@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('api', {
   createHighlight: (highlight) => ipcRenderer.invoke('highlight:create', highlight),
   getHighlightsByPage: (documentId, pageIndex) => ipcRenderer.invoke('highlights:getByPage', documentId, pageIndex),
   createComment: (comment) => ipcRenderer.invoke('comment:create', comment),
-  getCommentsByHighlight: (highlightId) => ipcRenderer.invoke('comments:getByHighlight', highlightId)
+  getCommentsByHighlight: (highlightId) => ipcRenderer.invoke('comments:getByHighlight', highlightId),
+  exportPdf: (documentId) => ipcRenderer.invoke('pdf:export', documentId)
 })

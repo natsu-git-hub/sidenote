@@ -16,6 +16,7 @@
   "dependencies": {
     "approx-string-match": "^2.0.0",
     "better-sqlite3": "^12.11.1",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.6.205"
   }
 }

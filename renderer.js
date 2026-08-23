@@ -297,10 +297,10 @@ textLayer.addEventListener('mouseup', () => {
 
     // Store the rectangle for later use
     rectsToSave = Array.from(rects).map(r => ({
-      left: r.left - pageContainerRect.left,
-      top: r.top - pageContainerRect.top,
-      width: r.width,
-      height: r.height
+      left: (r.left - pageContainerRect.left)/currentScale,
+      top: (r.top - pageContainerRect.top)/currentScale,
+      width: r.width/currentScale,
+      height: r.height/currentScale
     }))
   }
   else {
@@ -340,8 +340,8 @@ textLayer.addEventListener('click', (event) => {
     const rects = highlight.rects
     for (let j = 0; j < rects.length; j++) {
       const rect = rects[j]
-      if (x >= rect.left && x <= rect.left + rect.width &&
-        y >= rect.top && y <= rect.top + rect.height) {
+      if (x >= (rect.left * currentScale) && x <= (rect.left * currentScale) + (rect.width * currentScale) &&
+        y >= (rect.top * currentScale) && y <= (rect.top * currentScale) + (rect.height * currentScale)) {
         // This is the highlight that was clicked
         createComposeCard((body) => {
           window.api.createComment({
@@ -368,10 +368,10 @@ function renderHighlights(rectsToRender) {
     // Create a highlight element
     const highlight = document.createElement('div')
     highlight.style.position = 'absolute'
-    highlight.style.left = rect.left + 'px'
-    highlight.style.top = rect.top + 'px'
-    highlight.style.width = rect.width + 'px'
-    highlight.style.height = rect.height + 'px'
+    highlight.style.left = (rect.left * currentScale) + 'px'
+    highlight.style.top = (rect.top * currentScale) + 'px'
+    highlight.style.width = (rect.width * currentScale) + 'px'
+    highlight.style.height = (rect.height * currentScale) + 'px'
     highlight.style.backgroundColor = 'yellow'
     highlight.style.mixBlendMode = 'multiply'
     highlight.style.opacity = '0.4'
@@ -458,3 +458,10 @@ function resolveHighlight(highlight) {
     position: null
   }
 }
+
+const exportPdfBtn = document.getElementById('exportPdfBtn')
+exportPdfBtn.addEventListener('click', async () => {
+  const result = await window.api.exportPdf(currentDocumentId)
+  console.log('Current document ID:', currentDocumentId)
+  console.log('Export result:', result)
+})

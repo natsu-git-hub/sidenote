@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const Database = require('better-sqlite3')
 const crypto = require('crypto')
+const { PDFDocument } = require('pdf-lib')
 
 // Initialize database
 const db = new Database(path.join(app.getPath('userData'), 'sidenote.db'))
@@ -171,5 +172,24 @@ app.whenReady().then(() => {
   // Get comments by highlight ID
   ipcMain.handle('comments:getByHighlight', (event, highlightId) => {
     return db.prepare('SELECT * FROM comments WHERE highlight_id = ? ORDER BY seq').all(highlightId)
+  })
+
+  // Export the pdf
+  ipcMain.handle('pdf:export', async (event, documentId) => {
+
+    const highlights = db.prepare('SELECT * FROM highlights WHERE document_id = ? ORDER BY sort_index').all(documentId)
+    const document = db.prepare('SELECT * FROM documents WHERE id = ?').get(documentId)
+    const filePath = document.last_path
+    const bytes = fs.readFileSync(filePath)
+    const pdfDoc = await PDFDocument.load(bytes)
+    for (const highlight of highlights) {
+      const comments = db.prepare('SELECT * FROM comments WHERE highlight_id = ? ORDER BY seq').all(highlight.id)
+      console.log("Highlight:", highlight)
+      console.log("Comments:", comments, "\n\n")
+    }
+    const outBytes = await pdfDoc.save()
+    const outPath = filePath.replace('.pdf', '_annotated.pdf')
+    fs.writeFileSync(outPath, outBytes)
+    return { success: true }
   })
 })
