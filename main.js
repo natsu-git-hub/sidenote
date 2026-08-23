@@ -155,7 +155,10 @@ app.whenReady().then(() => {
   // Get or create document
   ipcMain.handle('document:getOrCreate', (event, { sha256, title, filePath, pdf_id, fingerprint }) => {
     const existing = db.prepare('SELECT id FROM documents WHERE sha256 = ? OR pdf_id = ? OR fingerprint = ?').get(sha256, pdf_id, fingerprint)
-    if (existing) return existing.id
+    if (existing) {
+      db.prepare('UPDATE documents SET last_path = ? WHERE id = ?').run(filePath, existing.id)
+      return existing.id
+    }
 
     const id = crypto.randomUUID()
     db.prepare('INSERT INTO documents (id, sha256, title, last_path, pdf_id, fingerprint) VALUES (?, ?, ?, ?, ?, ?)')
