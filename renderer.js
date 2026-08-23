@@ -1,4 +1,5 @@
 import * as pdfjsLib from './node_modules/pdfjs-dist/build/pdf.mjs'
+import search from './node_modules/approx-string-match/build/src/index.js'
 pdfjsLib.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.worker.mjs'
 
 const openBtn = document.getElementById('openBtn')
@@ -126,6 +127,12 @@ async function renderPage(pageNum) {
   for (const highlight of highlights) {
     // Get comments for this highlight
     const comments = await window.api.getCommentsByHighlight(highlight.id)
+
+    const resolution = resolveHighlight(highlight)
+    if (resolution.matched === 'orphan') {
+      console.warn('Highlight could not be reanchored, skipping draw:', highlight.id)
+    }
+
     if (comments.length !== 0) {
       // Create a comment element for each highlight
       const commentElement = document.createElement('div')
@@ -163,8 +170,10 @@ async function renderPage(pageNum) {
     else {
       unlabeledHighlights.push({ highlight, rects: JSON.parse(highlight.rects) })
     }
-    // Apply existing highlight
-    renderHighlights(JSON.parse(highlight.rects))
+    // Apply existing highlight, unless it couldn't be reanchored
+    if (resolution.matched !== 'orphan') {
+      renderHighlights(JSON.parse(highlight.rects))
+    }
   }
   console.log(unlabeledHighlights.length)
 }
@@ -366,9 +375,11 @@ function renderHighlights(rectsToRender) {
   }
 }
 
-addCommentBtn.addEventListener('click', () => {
+function normalize(s) {
+  return s.replace(/\s+/g, ' ').trim()
+}
 
-  const normalize = (s) => s.replace(/\s+/g, ' ').trim()
+addCommentBtn.addEventListener('click', () => {
   const normalizedCurrentPageText = normalize(currentPageText)
   const normalizedSelectedText = normalize(selectedText)
   const index = normalizedCurrentPageText.indexOf(normalizedSelectedText)
@@ -408,3 +419,36 @@ addCommentBtn.addEventListener('click', () => {
     addCommentBtn.style.display = 'none'
   })
 })
+
+function verifyExactMatch(highlight, pageText) {
+  return normalize(pageText).substring(highlight.char_start, highlight.char_end) === highlight.quote
+}
+
+function fuzzyReanchor(highlight, pageText) {
+  const searchResult = search(normalize(pageText), highlight.quote, 5)
+  if (searchResult.length === 0) {
+    return null
+  }
+  return searchResult[0].start
+}
+
+function resolveHighlight(highlight) {
+  const pageText = currentPageText
+  if (verifyExactMatch(highlight, pageText)) {
+    return {
+      matched: 'exact',
+      position: highlight.char_start
+    }
+  }
+  const position = fuzzyReanchor(highlight, pageText)
+  if (position !== null) {
+    return {
+      matched: 'fuzzy',
+      position: position
+    }
+  }
+  return {
+    matched: 'orphan',
+    position: null
+  }
+}
