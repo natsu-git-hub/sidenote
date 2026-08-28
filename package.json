@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Vineet",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "description": "",
   "devDependencies": {
     "@electron/rebuild": "^3.7.2",
